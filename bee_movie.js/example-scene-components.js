@@ -100,21 +100,25 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
     'draw_bee'( graphics_state, model_transform )
       {
         // these variables control the bee's dimensions
-        var torso_scale = 2;
+        var torso_length = 2;
+        var torso_width = 1;
         var abdomen_length = 3;
         var abdomen_width = 1.5;
         var wing_width = 1;
         var wing_length = 3;
         var wing_height = 0.25;
+        var leg_length = 1;
+        var leg_width = 0.25;
+        var leg_space = 0.5;
 
         // draw the torso
-        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_scale, 1, 1)), this.brown_clay);
+        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.brown_clay);
 
         // draw the head
-        this.shapes.ball.draw(graphics_state, mult(model_transform, translation(torso_scale + 1, 0, 0)), this.brown_clay);
+        this.shapes.ball.draw(graphics_state, mult(model_transform, translation(torso_length + 1, 0, 0)), this.brown_clay);
 
         // draw the abdomen
-        var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_scale), 0, 0));
+        var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_length), 0, 0));
         var abdomen_transform = mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width));
         this.shapes.ball.draw(graphics_state, abdomen_transform, this.brown_clay);
 
@@ -123,8 +127,35 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.brown_clay);
         }.bind(this);
 
-        draw_wing(mult(model_transform, translation(0,1,1)));
-        draw_wing(mult(model_transform, translation(0,1,1)));
+        // draw left wing
+        draw_wing(mult(model_transform, translation(0,  torso_width, torso_width)));
+
+        // draw right wing using a reflection
+        draw_wing(mult(mult(model_transform, translation(0, -torso_width, torso_width)), scale(1, -1, 1)));
+
+        draw_leg = function (model_transform) {
+          // first segment
+          model_transform = mult(model_transform, rotation(-45, [1, 0, 0]));
+          model_transform = mult(model_transform, translation(0, leg_length + torso_width*Math.sqrt(2), leg_width));
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
+
+          // second segment
+          model_transform = mult(model_transform, translation(0, leg_length, -leg_width));
+          model_transform = mult(model_transform, rotation(-45, [1, 0, 0]));
+          model_transform = mult(model_transform, translation(0, leg_length, leg_width));
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
+        }.bind(this);
+
+        // draw three legs
+        draw_legs = function (model_transform) {
+          draw_leg(model_transform);
+          draw_leg(mult(model_transform, translation(leg_space + 2*leg_width, 0, 0)));
+          draw_leg(mult(model_transform, translation(-(leg_space + 2*leg_width), 0, 0)));
+        }
+
+        // draw each side of the legs with a reflection
+        draw_legs(model_transform);
+        draw_legs(mult(model_transform, scale(1, -1, 1)));
       },
     'display'( graphics_state )
       { 
@@ -132,11 +163,17 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           graphics_state.lights = [ new Light( vec4(  -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
                                     new Light( vec4(   10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
+        var bee_scale = 0.25;
         var model_transform = identity();
+        var t = graphics_state.animation_time/1000;
 
         this.shapes.ground.draw(graphics_state, mult(model_transform, scale(50,50,50)), this.yellow_clay);
-        //this.draw_tree(graphics_state, model_transform, 7, 5);
-        this.draw_bee(graphics_state, mult(model_transform, translation(0, 0, 10)));
+        this.draw_tree(graphics_state, model_transform, 7, 5);
+
+        model_transform = mult(model_transform, scale(bee_scale, bee_scale, bee_scale));
+        model_transform = mult(model_transform, translation(40*Math.sin(t), -40*Math.cos(t), 40 + Math.sin(t*15)));
+        model_transform = mult(model_transform, rotation(t*80, [0, 0, 1]));
+        this.draw_bee(graphics_state, model_transform);
       }
   }, Scene_Component );
 
@@ -190,7 +227,7 @@ Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a Scene_Comp
 Declare_Any_Class( "Example_Camera",                  // An example of a Scene_Component that our Canvas_Manager can manage.  Adds both first-person and
   { 'construct'( context, canvas = context.canvas )   // third-person style camera matrix controls to the canvas.
       { // 1st parameter below is our starting camera matrix.  2nd is the projection:  The matrix that determines how depth is treated.  It projects 3D points onto a plane.
-        context.globals.graphics_state.set( mult(translation(0, -10, -80), rotation(270, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
+        context.globals.graphics_state.set( mult(translation(0, -10, -10), rotation(270, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
         this.define_data_members( { graphics_state: context.globals.graphics_state, thrust: vec3(), origin: vec3( 0, 0, 0 ), looking: false } );
 
         // *** Mouse controls: ***
