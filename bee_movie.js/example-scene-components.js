@@ -93,6 +93,8 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           model_transform = mult(model_transform, translation(0, 0, trunk_height));
         }
 
+        // draw the little ball at the end
+        model_transform = mult(model_transform, translation(0, 0, ball_size - trunk_height));
         this.shapes.ball.draw(graphics_state, mult(model_transform, scale(ball_size, ball_size, ball_size)), this.yellow_clay);
       },
     'display'( graphics_state )
