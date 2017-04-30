@@ -97,20 +97,46 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         model_transform = mult(model_transform, translation(0, 0, ball_size - trunk_height));
         this.shapes.ball.draw(graphics_state, mult(model_transform, scale(ball_size, ball_size, ball_size)), this.yellow_clay);
       },
+    'draw_bee'( graphics_state, model_transform )
+      {
+        // these variables control the bee's dimensions
+        var torso_scale = 2;
+        var abdomen_length = 3;
+        var abdomen_width = 1.5;
+        var wing_width = 1;
+        var wing_length = 3;
+        var wing_height = 0.25;
+
+        // draw the torso
+        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_scale, 1, 1)), this.brown_clay);
+
+        // draw the head
+        this.shapes.ball.draw(graphics_state, mult(model_transform, translation(torso_scale + 1, 0, 0)), this.brown_clay);
+
+        // draw the abdomen
+        var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_scale), 0, 0));
+        var abdomen_transform = mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width));
+        this.shapes.ball.draw(graphics_state, abdomen_transform, this.brown_clay);
+
+        draw_wing = function (model_transform) {
+          model_transform = mult(model_transform, translation(0, wing_length, wing_height));
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.brown_clay);
+        }.bind(this);
+
+        draw_wing(mult(model_transform, translation(0,1,1)));
+        draw_wing(mult(model_transform, translation(0,1,1)));
+      },
     'display'( graphics_state )
       { 
         // *** Lights: *** Values of vector or point lights over time.  Two different lights *per shape* supported; more requires changing a number in the vertex shader.
-        graphics_state.lights = [ new Light( vec4(  -10,  -10,  15, 1 ), Color( .4, .4, .4, 1 ), 100000 ) ]     // Arguments to construct a Light(): Light source position or 
+          graphics_state.lights = [ new Light( vec4(  -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
+                                    new Light( vec4(   10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
         var model_transform = identity();
 
-        // draw ground plane
         this.shapes.ground.draw(graphics_state, mult(model_transform, scale(50,50,50)), this.yellow_clay);
-
-        // draw tree
-        this.draw_tree(graphics_state, model_transform, 7, 5);
-        //this.shapes.box.draw(graphics_state, mult(model_transform, translation(0,0,1)), this.yellow_clay);
-
+        //this.draw_tree(graphics_state, model_transform, 7, 5);
+        this.draw_bee(graphics_state, mult(model_transform, translation(0, 0, 10)));
       }
   }, Scene_Component );
 
@@ -164,7 +190,7 @@ Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a Scene_Comp
 Declare_Any_Class( "Example_Camera",                  // An example of a Scene_Component that our Canvas_Manager can manage.  Adds both first-person and
   { 'construct'( context, canvas = context.canvas )   // third-person style camera matrix controls to the canvas.
       { // 1st parameter below is our starting camera matrix.  2nd is the projection:  The matrix that determines how depth is treated.  It projects 3D points onto a plane.
-        context.globals.graphics_state.set( mult(translation(0, -10, -70), rotation(-90, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
+        context.globals.graphics_state.set( mult(translation(0, -10, -80), rotation(270, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
         this.define_data_members( { graphics_state: context.globals.graphics_state, thrust: vec3(), origin: vec3( 0, 0, 0 ), looking: false } );
 
         // *** Mouse controls: ***
