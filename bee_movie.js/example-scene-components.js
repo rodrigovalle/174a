@@ -67,10 +67,21 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
   { 'construct'( context )
       { var shapes = { 'box' : new        Cube(), 
                        'ball': new Grid_Sphere( 15, 15 ),
-                       'ground': new Square() };                                // each with only one instance in the graphics card's memory.
+                       'hat': new Cone_Tip(10, 10),
+                       'ground': new Square() };
         this.submit_shapes( context, shapes );
-        this.define_data_members( { yellow_clay: context.shaders_in_use["Phong_Model"].material( Color(  1,  1, .3, 1 ), .2, 1, .7, 40 ),
-                                     brown_clay: context.shaders_in_use["Phong_Model"].material( Color( .5, .5, .3, 1 ), .2, 1,  1, 40 ) } );
+        this.define_data_members( { yellow_clay:  context.shaders_in_use["Phong_Model"].material( Color( 1    ,  1 , .3, 1 ), .2, 1, .7, 40 ),
+                                    brown_clay:   context.shaders_in_use["Phong_Model"].material( Color( .5   , .5 , .3, 1 ), .2, 1,  1, 40 ),
+                                    tree_bark:    context.shaders_in_use["Phong_Model"].material( Color( .545, .27 , .074 ), .2, 1, .7, 40 ),
+                                    tree_foliage: context.shaders_in_use["Phong_Model"].material( Color( .18 , .545, .34 ), .2, 1, .7, 40 ),
+                                    ground:       context.shaders_in_use["Phong_Model"].material( Color( .419, .557, .137 ), .2, 1, .7, 40 ),
+                                    bee_head:     context.shaders_in_use["Phong_Model"].material( Color( .863, .078, .235 ), .2, 1, .7, 40 ),
+                                    bee_wing:     context.shaders_in_use["Phong_Model"].material( Color( 0.86, 0.86, 0.86 ), .2, 1, .7, 40 ),
+                                    bee_torso:    context.shaders_in_use["Phong_Model"].material( Color( .18 , .30 , .30 ), .2, 1, .7, 40 ),
+                                    bee_abdomen:  context.shaders_in_use["Phong_Model"].material( Color( .855, .647, .125), .2, 1, .7, 40 ),
+                                    bee_leg1:     context.shaders_in_use["Phong_Model"].material( Color( .2  , .2  , .2 ), .2, 1, .7, 40 ),
+                                    bee_leg2:     context.shaders_in_use["Phong_Model"].material( Color( .7  , .7  , .7 ), .2, 1, .7, 40 ),
+                                    bee_hat:      context.shaders_in_use["Phong_Model"].material( Color( .020, 0   , 0.5), .5, .5, .5, 40, context.textures_in_use["stars.png"]) });
       },
     'draw_tree'( graphics_state, model_transform, height, sway )
       {
@@ -87,15 +98,15 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         //   - rotate by `sway` degrees
         //   - move the origin up along the rotated axis to the center of the next trunk
         for (i = 0; i < height; i++) {
-          this.shapes.box.draw(graphics_state, mult(model_transform, scale(1, 1, trunk_height)), this.brown_clay);
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(1, 1, trunk_height)), this.tree_bark);
           model_transform = mult(model_transform, translation(0, 0, trunk_height));
-          model_transform = mult(model_transform, rotation(sway*Math.cos(t), [0, 1, 0]));
+          model_transform = mult(model_transform, rotation(sway*Math.sin(t), [0, 1, 0]));
           model_transform = mult(model_transform, translation(0, 0, trunk_height));
         }
 
         // draw the foliage at the end
         model_transform = mult(model_transform, translation(0, 0, ball_size - trunk_height));
-        this.shapes.ball.draw(graphics_state, mult(model_transform, scale(ball_size, ball_size, ball_size)), this.yellow_clay);
+        this.shapes.ball.draw(graphics_state, mult(model_transform, scale(ball_size, ball_size, ball_size)), this.tree_foliage);
       },
     'draw_bee'( graphics_state, model_transform )
       {
@@ -120,7 +131,7 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         draw_wing = function (model_transform) {
           model_transform = mult(model_transform, rotation(35*Math.sin(t*5), [1,0,0]));
           model_transform = mult(model_transform, translation(0, wing_length, wing_height));
-          this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.brown_clay);
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.bee_wing);
         }.bind(this);
 
         /* this function lets us draw a single leg relative to the center of the torso
@@ -141,13 +152,13 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           model_transform = mult(model_transform, translation(0, torso_width*Math.sqrt(2), 0));
           model_transform = mult(model_transform, rotation(20*Math.sin(t), [1, 0, 0]));
           model_transform = mult(model_transform, translation(0, leg_length, leg_width));
-          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.bee_leg1);
 
           // second segment
           model_transform = mult(model_transform, translation(0, leg_length, -leg_width));
           model_transform = mult(model_transform, rotation(-45 + 20*Math.sin(t), [1, 0, 0]));
           model_transform = mult(model_transform, translation(0, leg_length, leg_width));
-          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
+          this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.bee_leg2);
         }.bind(this);
 
         /* draw three legs relative to the center of the torso (given by model_transform) */
@@ -159,15 +170,19 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
 
         /* ===== DRAWING THE BEE ===== */
         // draw the torso
-        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.brown_clay);
+        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.bee_torso);
 
         // draw the head
         var head_transform = mult(model_transform, translation(torso_length + head_size, 0, 0));
-        this.shapes.ball.draw(graphics_state, mult(head_transform, scale(head_size, head_size, head_size)), this.brown_clay);
+        this.shapes.ball.draw(graphics_state, mult(head_transform, scale(head_size, head_size, head_size)), this.bee_head);
+
+        // draw the hat
+        head_transform = mult(head_transform, translation(0, 0, 2*head_size));
+        this.shapes.hat.draw(graphics_state, mult(head_transform, scale(head_size/2, head_size/2, head_size)), this.bee_hat);
 
         // draw the abdomen
         var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_length), 0, 0));
-        this.shapes.ball.draw(graphics_state, mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width)), this.brown_clay);
+        this.shapes.ball.draw(graphics_state, mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width)), this.bee_abdomen);
 
         // draw left wing --> translate up to top left of bee first
         draw_wing(mult(model_transform, translation(0,  torso_width, torso_width)));
@@ -191,10 +206,10 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         var t = graphics_state.animation_time/1000;
 
         // draw the ground
-        this.shapes.ground.draw(graphics_state, mult(model_transform, scale(50,50,50)), this.yellow_clay);
+        this.shapes.ground.draw(graphics_state, mult(model_transform, scale(100,100,100)), this.yellow_clay);
 
         // draw the tree
-        this.draw_tree(graphics_state, model_transform, 7, 5);
+        this.draw_tree(graphics_state, model_transform, 8, 5);
 
         // draw the bee with animated translation + rotation so it goes around the tree
         model_transform = mult(model_transform, scale(bee_scale, bee_scale, bee_scale));
@@ -254,7 +269,7 @@ Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a Scene_Comp
 Declare_Any_Class( "Example_Camera",                  // An example of a Scene_Component that our Canvas_Manager can manage.  Adds both first-person and
   { 'construct'( context, canvas = context.canvas )   // third-person style camera matrix controls to the canvas.
       { // 1st parameter below is our starting camera matrix.  2nd is the projection:  The matrix that determines how depth is treated.  It projects 3D points onto a plane.
-        context.globals.graphics_state.set( mult(translation(0, -10, -10), rotation(270, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
+        context.globals.graphics_state.set( mult(translation(0, -20, -40), rotation(270, [1, 0, 0])), perspective(45, context.width/context.height, .1, 1000), 0 );
         this.define_data_members( { graphics_state: context.globals.graphics_state, thrust: vec3(), origin: vec3( 0, 0, 0 ), looking: false } );
 
         // *** Mouse controls: ***
