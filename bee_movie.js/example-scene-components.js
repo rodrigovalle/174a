@@ -74,11 +74,11 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
       },
     'draw_tree'( graphics_state, model_transform, height, sway )
       {
-        // start the first trunk-block at the ground plane
         var trunk_height = 2; // note: actual trunk height will be trunk_height*2 because of how scaling works
         var ball_size = 7;
         var t = graphics_state.animation_time / 500;
 
+        // start the first trunk-block at the ground plane
         model_transform = mult(model_transform, translation(0, 0, trunk_height));
 
         // for each trunk:
@@ -93,14 +93,15 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           model_transform = mult(model_transform, translation(0, 0, trunk_height));
         }
 
-        // draw the little ball at the end
+        // draw the foliage at the end
         model_transform = mult(model_transform, translation(0, 0, ball_size - trunk_height));
         this.shapes.ball.draw(graphics_state, mult(model_transform, scale(ball_size, ball_size, ball_size)), this.yellow_clay);
       },
     'draw_bee'( graphics_state, model_transform )
       {
-        // these variables control the bee's dimensions
-        var torso_length = 2;
+        /* ======== PARAMETERS ======== */
+        var head_size = 1;
+        var torso_length = 3;
         var torso_width = 1;
         var abdomen_length = 3;
         var abdomen_width = 1.5;
@@ -112,29 +113,28 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         var leg_space = 0.5;
         var t = graphics_state.animation_time / 500
 
-        // draw the torso
-        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.brown_clay);
-
-        // draw the head
-        this.shapes.ball.draw(graphics_state, mult(model_transform, translation(torso_length + 1, 0, 0)), this.brown_clay);
-
-        // draw the abdomen
-        var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_length), 0, 0));
-        var abdomen_transform = mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width));
-        this.shapes.ball.draw(graphics_state, abdomen_transform, this.brown_clay);
-
+        /* ===== HELPER FUNCTIONS ===== */
+        /* this function allows us to draw a single wing relative to the given model transform by
+         *   - rotating the wing to the correct angle
+         *   - translating it so a bottom corner is touching the original model transform center coordinate */
         draw_wing = function (model_transform) {
-          model_transform = mult(model_transform, rotation(35*Math.sin(t*10), [1,0,0]));
+          model_transform = mult(model_transform, rotation(35*Math.sin(t*5), [1,0,0]));
           model_transform = mult(model_transform, translation(0, wing_length, wing_height));
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.brown_clay);
         }.bind(this);
 
-        // draw left wing
-        draw_wing(mult(model_transform, translation(0,  torso_width, torso_width)));
-
-        // draw right wing using a reflection
-        draw_wing(mult(mult(model_transform, translation(0, -torso_width, torso_width)), scale(1, -1, 1)));
-
+        /* this function lets us draw a single leg relative to the center of the torso
+         * draw first segment:
+         *   - rotate leg segment
+         *   - push it out so center is at the corner of the torso by translating down y axis
+         *   - rotate according to animation (i.e. around the joint)
+         *   - translate so the object is in the right place (i.e. connected at the joint)
+         *   - draw the leg by scaling a cube
+         *
+         * draw second segment:
+         *   - in our rotated frame of reference, move to the inner edge of the first segment
+         *   - rotate according to our animation
+         *   - translate back so the joint is connected in the right place */
         draw_leg = function (model_transform) {
           // first segment
           model_transform = mult(model_transform, rotation(-45, [1, 0, 0]));
@@ -150,12 +150,30 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
         }.bind(this);
 
-        // draw three legs
+        /* draw three legs relative to the center of the torso (given by model_transform) */
         draw_legs = function (model_transform) {
           draw_leg(model_transform);
           draw_leg(mult(model_transform, translation(leg_space + 2*leg_width, 0, 0)));
           draw_leg(mult(model_transform, translation(-(leg_space + 2*leg_width), 0, 0)));
         }
+
+        /* ===== DRAWING THE BEE ===== */
+        // draw the torso
+        this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.brown_clay);
+
+        // draw the head
+        var head_transform = mult(model_transform, translation(torso_length + head_size, 0, 0));
+        this.shapes.ball.draw(graphics_state, mult(head_transform, scale(head_size, head_size, head_size)), this.brown_clay);
+
+        // draw the abdomen
+        var abdomen_transform = mult(model_transform, translation(-(abdomen_length + torso_length), 0, 0));
+        this.shapes.ball.draw(graphics_state, mult(abdomen_transform, scale(abdomen_length, abdomen_width, abdomen_width)), this.brown_clay);
+
+        // draw left wing --> translate up to top left of bee first
+        draw_wing(mult(model_transform, translation(0,  torso_width, torso_width)));
+
+        // draw right wing using a reflection
+        draw_wing(mult(mult(model_transform, translation(0, -torso_width, torso_width)), scale(1, -1, 1)));
 
         // draw each side of the legs with a reflection
         draw_legs(model_transform);
@@ -167,16 +185,20 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         graphics_state.lights = [ new Light( vec4( -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
                                   new Light( vec4(  10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
+        // initialize some parameters
         var bee_scale = 0.25;
         var model_transform = identity();
         var t = graphics_state.animation_time/1000;
 
+        // draw the ground
         this.shapes.ground.draw(graphics_state, mult(model_transform, scale(50,50,50)), this.yellow_clay);
+
+        // draw the tree
         this.draw_tree(graphics_state, model_transform, 7, 5);
 
+        // draw the bee with animated translation + rotation so it goes around the tree
         model_transform = mult(model_transform, scale(bee_scale, bee_scale, bee_scale));
-        //model_transform = mult(model_transform, translation(0, -40, 40));
-        model_transform = mult(model_transform, translation(80*Math.sin(t), -80*Math.cos(t), 80 + Math.sin(t*20)));
+        model_transform = mult(model_transform, translation(80*Math.sin(t), -80*Math.cos(t), 80 - 3*Math.sin(t*10)));
         model_transform = mult(model_transform, rotation(t/(2*Math.PI)*360, [0, 0, 1]));
         this.draw_bee(graphics_state, model_transform);
       }
