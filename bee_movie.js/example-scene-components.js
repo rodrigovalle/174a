@@ -106,10 +106,11 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         var abdomen_width = 1.5;
         var wing_width = 1;
         var wing_length = 3;
-        var wing_height = 0.25;
+        var wing_height = 0.1;
         var leg_length = 1;
         var leg_width = 0.25;
         var leg_space = 0.5;
+        var t = graphics_state.animation_time / 500
 
         // draw the torso
         this.shapes.box.draw(graphics_state, mult(model_transform, scale(torso_length, torso_width, torso_width)), this.brown_clay);
@@ -123,6 +124,7 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         this.shapes.ball.draw(graphics_state, abdomen_transform, this.brown_clay);
 
         draw_wing = function (model_transform) {
+          model_transform = mult(model_transform, rotation(35*Math.sin(t*10), [1,0,0]));
           model_transform = mult(model_transform, translation(0, wing_length, wing_height));
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(wing_width, wing_length, wing_height)), this.brown_clay);
         }.bind(this);
@@ -136,12 +138,14 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         draw_leg = function (model_transform) {
           // first segment
           model_transform = mult(model_transform, rotation(-45, [1, 0, 0]));
-          model_transform = mult(model_transform, translation(0, leg_length + torso_width*Math.sqrt(2), leg_width));
+          model_transform = mult(model_transform, translation(0, torso_width*Math.sqrt(2), 0));
+          model_transform = mult(model_transform, rotation(20*Math.sin(t), [1, 0, 0]));
+          model_transform = mult(model_transform, translation(0, leg_length, leg_width));
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
 
           // second segment
           model_transform = mult(model_transform, translation(0, leg_length, -leg_width));
-          model_transform = mult(model_transform, rotation(-45, [1, 0, 0]));
+          model_transform = mult(model_transform, rotation(-45 + 20*Math.sin(t), [1, 0, 0]));
           model_transform = mult(model_transform, translation(0, leg_length, leg_width));
           this.shapes.box.draw(graphics_state, mult(model_transform, scale(leg_width, leg_length, leg_width)), this.brown_clay);
         }.bind(this);
@@ -160,8 +164,8 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
     'display'( graphics_state )
       { 
         // *** Lights: *** Values of vector or point lights over time.  Two different lights *per shape* supported; more requires changing a number in the vertex shader.
-          graphics_state.lights = [ new Light( vec4(  -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
-                                    new Light( vec4(   10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
+        graphics_state.lights = [ new Light( vec4( -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
+                                  new Light( vec4(  10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
         var bee_scale = 0.25;
         var model_transform = identity();
@@ -171,8 +175,9 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
         this.draw_tree(graphics_state, model_transform, 7, 5);
 
         model_transform = mult(model_transform, scale(bee_scale, bee_scale, bee_scale));
-        model_transform = mult(model_transform, translation(40*Math.sin(t), -40*Math.cos(t), 40 + Math.sin(t*15)));
-        model_transform = mult(model_transform, rotation(t*80, [0, 0, 1]));
+        //model_transform = mult(model_transform, translation(0, -40, 40));
+        model_transform = mult(model_transform, translation(80*Math.sin(t), -80*Math.cos(t), 80 + Math.sin(t*20)));
+        model_transform = mult(model_transform, rotation(t/(2*Math.PI)*360, [0, 0, 1]));
         this.draw_bee(graphics_state, model_transform);
       }
   }, Scene_Component );
