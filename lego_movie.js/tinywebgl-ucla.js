@@ -39,6 +39,7 @@ Declare_Any_Class( "Shape",
           gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(this.indices), gl.STATIC_DRAW);
         }
         this.gl = gl;
+        this.sent_to_GPU = true;
       },      
     'draw'( graphics_state, model_transform, material, gl = this.gl )                          // The same draw() function is used for every shape -
       { if( !this.gl ) throw "This shape's arrays are not copied over to graphics card yet.";  // these calls produce different results by varying which

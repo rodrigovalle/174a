@@ -66,8 +66,7 @@ Declare_Any_Class( "Example_Animation",  // An example of a Scene_Component that
 Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object using a "model_transform" matrix and post-multiplication.
   { 'construct'( context )
       { var shapes = { 'box' : new        Cube(), 
-                       'ball': new Grid_Sphere( 15, 15 ),
-                       'hat': new Cone_Tip(10, 10),
+                       'lego_body': new Lego_Body(),
                        'ground': new Square(),
                        'axis'        : new Axis_Arrows() };
         this.submit_shapes( context, shapes );
@@ -91,13 +90,9 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
                                   new Light( vec4(  10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
         var model_transform = identity();
-        this.shapes.axis.draw(graphics_state, model_transform, this.brown_clay);
-
-        model_transform = mult(model_transform, scale(2, 1, 1));
-        model_transform = mult(model_transform, translation(1, 1, 0));
-        //this.shapes.box.draw(graphics_state, model_transform, this.brown_clay);
-        model_transform = mult(model_transform, rotation(90*Math.sin(graphics_state.animation_time/1000), [0,0,1]));
-        this.shapes.box.draw(graphics_state, model_transform, this.brown_clay);
+        model_transform = mult(model_transform, scale(2, 2, 2));
+        model_transform = mult(model_transform, rotation(90, [0,0,1]));
+        this.shapes.lego_body.draw(graphics_state, model_transform, this.yellow_clay);
       }
   }, Scene_Component );
 
@@ -113,6 +108,8 @@ Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a Scene_Comp
         var shapes = { 'debug_text': new Text_Line( 35 ),
                        'cube':   new Cube() };
         this.submit_shapes( context, shapes );
+        this.last_time = new Date().getTime();
+        this.framecount = 0;
       },
     'init_keys'( controls )
       { controls.add( "t",    this, function() { this.visible ^= 1;                                                                                                  } );
@@ -122,7 +119,18 @@ Declare_Any_Class( "Debug_Screen",  // Debug_Screen - An example of a Scene_Comp
         this.controls = controls;
       },
     'update_strings'( debug_screen_object )   // Strings that this Scene_Component contributes to the UI:
-      { debug_screen_object.string_map["tick"]              = "Frame: " + this.tick++;
+      { 
+        var current_time = new Date().getTime();
+        this.framecount++;
+        var elapsed_time = current_time - this.last_time;
+        if (elapsed_time >= 100) { // check every 10th of a second
+            this.fps = this.framecount/elapsed_time * 1000;
+            this.framecount = 0;
+            this.last_time = current_time;
+        }
+
+        debug_screen_object.string_map["fps"]               = "FPS: " + this.fps;
+        debug_screen_object.string_map["tick"]              = "Frame: " + this.tick++;
         debug_screen_object.string_map["text_scroll_index"] = "Text scroll index: " + this.start_index;
       },
     'display'( global_graphics_state )    // Leave these 3D global matrices unused, because this class is instead making a 2D user interface.

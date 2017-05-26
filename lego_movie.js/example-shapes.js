@@ -38,31 +38,51 @@ Declare_Any_Class( "Square",    // A square, demonstrating shared vertices.  On 
       }
   }, Shape )
 
-Declare_Any_Class( "Lego-Body",
+Declare_Any_Class( "Lego_Body_Trapezoid",
   { 'populate'()
     {
-      this.positions.push( vec3(-1,-0.35, 1), vec3( 1,-0.35, 1), vec3(-1,-1,-1)); // front face
-      this.positions.push( vec3( 1,-0.35, 1), vec3(-1,   -1,-1), vec3( 1,-1,-1));
-
-      this.positions.push( vec3( 1,-0.35, 1), vec3( 1, 0.35, 1), vec3( 1,-1,-1)); // right face
-      this.positions.push( vec3( 1, 0.35, 1), vec3( 1,   -1,-1), vec3( 1, 1,-1));
-
-      this.positions.push( vec3(-1,-0.35, 1), vec3(-1, 0.35, 1), vec3(-1,-1,-1)); // left face
-      this.positions.push( vec3(-1, 0.35, 1), vec3(-1,   -1,-1), vec3(-1, 1,-1));
-
-      this.positions.push( vec3( 1, 0.35, 1), vec3(-1, 0.35, 1), vec3( 1, 1,-1)); // back face
-      this.positions.push( vec3(-1, 0.35, 1), vec3( 1,    1,-1), vec3(-1, 1,-1));
-
-      this.positions.push( vec3( 1,-0.35, 1), vec3(-1,-0.35, 1), vec3( 1, 0.35, 1)); // top face
-      this.positions.push( vec3(-1,-0.35, 1), vec3( 1, 0.35, 1), vec3(-1, 0.35, 1));
-
-      this.positions.push( vec3( 1,-1,-1), vec3(-1, 1,-1), vec3( 1, 1,-1)); // bottom face
-      this.positions.push( vec3(-1, 1,-1), vec3( 1, 1,-1), vec3(-1,-1,-1));
-
-      this.indices.push( 0,  1,  2,   3,  4,  5,    6, 7,   8,  9, 10, 11,
-                        12, 13, 14,  15, 16, 17,   18, 19, 20);
+      this.positions.push( vec3(-1,0.5,0),  vec3(1,-1,0), vec3(-1,-0.5,0), vec3(1,1,0));
+      this.normals.push(vec3(0,0,1), vec3(0,0,1), vec3(0,0,1), vec3(0,0,1));
+      this.texture_coords.push(vec2(0,0), vec2(1,0), vec2(0,1), vec2(1,1));
+      this.indices.push(0,1,2, 0, 1, 3);
     }
-  }
+  }, Shape )
+
+Declare_Any_Class( "Lego_Body",
+  { 'populate'()
+    {
+      var trans = identity();
+      trans = mult(trans, rotation(90, [0,1,0]));
+      trans = mult(trans, translation( 0,0,-0.5));
+      Lego_Body_Trapezoid.prototype.insert_transformed_copy_into(this, [], trans);
+      trans = mult(trans, translation( 0,0,1));
+      Lego_Body_Trapezoid.prototype.insert_transformed_copy_into(this, [], trans);
+
+      trans = identity();
+      trans = mult(trans, scale(0.5, 0.5, 1));
+      trans = mult(trans, translation(0, 0, 1));
+      Square.prototype.insert_transformed_copy_into(this, [], trans);
+
+      trans = identity();
+      trans = mult(trans, scale(0.5, 1, 1));
+      trans = mult(trans, translation(0, 0, -1));
+      Square.prototype.insert_transformed_copy_into(this, [], trans);
+
+      trans = identity();
+      trans = mult(trans, translation(0, 1, -1));
+      trans = mult(trans, rotation(-75.9637, [1, 0, 0]));
+      trans = mult(trans, translation(0, -Math.sqrt(0.5*0.5 + 2*2)/2, 0));
+      trans = mult(trans, scale(0.5, Math.sqrt(0.5*0.5 + 2*2)/2, 1));
+      Square.prototype.insert_transformed_copy_into(this, [], trans);
+
+      trans = identity();
+      trans = mult(trans, translation(0, -1, -1));
+      trans = mult(trans, rotation(75.9637 + 180, [1, 0, 0]));
+      trans = mult(trans, translation(0, -Math.sqrt(0.5*0.5 + 2*2)/2, 0));
+      trans = mult(trans, scale(0.5, Math.sqrt(0.5*0.5 + 2*2)/2, 1));
+      Square.prototype.insert_transformed_copy_into(this, [], trans);
+    }
+  }, Shape )
 
   // *********** TETRAHEDRON ***********
 Declare_Any_Class( "Tetrahedron",              // A demo of flat vs smooth shading.  Also our first 3D, non-planar shape.
