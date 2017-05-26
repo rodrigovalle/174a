@@ -1,0 +1,8 @@
+All parts complete. Press ALT+A to play animations. Start webserver using
+
+  $ python -m http.server
+
+I think this needs python3. Then go to http://localhost:8000/.
+
+Note that some of the changes I made might cause weird behavior in the other
+WebGL examples.
