@@ -338,11 +338,11 @@ function lookAt( eye, at, up )
     }
 
     if ( !Array.isArray(at) || at.length != 3) {
-        throw "lookAt(): first parameter [at] must be an a vec3";
+        throw "lookAt(): second parameter [at] must be an a vec3";
     }
 
     if ( !Array.isArray(up) || up.length != 3) {
-        throw "lookAt(): first parameter [up] must be an a vec3";
+        throw "lookAt(): third parameter [up] must be an a vec3";
     }
 
     if ( equal(eye, at) ) {

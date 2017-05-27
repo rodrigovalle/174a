@@ -7,6 +7,9 @@
   // First go down to the following class's display() method to see where the sample 
   // shapes you see drawn are coded, and a good place to begin filling in your own code.
 
+var lightsaber_noise = new Audio("lightsaber.mp3");
+var played = false;
+
 Declare_Any_Class( "Example_Animation",  // An example of a Scene_Component that our class Canvas_Manager can manage.  This one draws the scene's 3D shapes.
   { 'construct'( context )
       { var shapes = { 'triangle'        : new Triangle(),                               // At the beginning of our program, instantiate all shapes we plan to use,
@@ -67,33 +70,238 @@ Declare_Any_Class( "Bee_Scene",  // An example of drawing a hierarchical object 
   { 'construct'( context )
       { var shapes = { 'box' : new        Cube(), 
                        'lego_body': new Lego_Body(),
+                       'lego_head': new Shape_From_File("lego-head.obj"), // causes an uncaught type-error "Cannot read property createBuffer of undefined", but doesn't affect anything
+                       'lego_arm': new Shape_From_File("lego-arm.obj"),
+                       'lego_hand': new Shape_From_File("lego-hand.obj"),
+                       'lego_head': new Shape_From_File("lego-head.obj"),
+                       'lego_leg': new Shape_From_File("lego-leg.obj"),
+                       'lego_lower': new Shape_From_File("lego-lower.obj"),
+                       'block1': new Shape_From_File("block1.obj"),
+                       'block2': new Shape_From_File("block2.obj"),
+                       'sword': new Rounded_Capped_Cylinder(10, 10),
                        'ground': new Square(),
+                       'crate': new Shape_From_File("crate.obj"),
                        'axis'        : new Axis_Arrows() };
         this.submit_shapes( context, shapes );
         this.define_data_members( { yellow_clay:  context.shaders_in_use["Phong_Model"].material( Color( 1    ,  1 , .3, 1 ), .2, 1, .7, 40 ),
                                     brown_clay:   context.shaders_in_use["Phong_Model"].material( Color( .5   , .5 , .3, 1 ), .2, 1,  1, 40 ),
                                     tree_bark:    context.shaders_in_use["Phong_Model"].material( Color( .545, .27 , .074 ), .2, 1, .7, 40 ),
                                     tree_foliage: context.shaders_in_use["Phong_Model"].material( Color( .18 , .545, .34 ), .2, 1, .7, 40 ),
-                                    ground:       context.shaders_in_use["Phong_Model"].material( Color( .419, .557, .137 ), .2, 1, .7, 40 ),
+                                    ground:       context.shaders_in_use["Phong_Model"].material( Color( 0.4, 0.4, 0.4), .7, 1, .9, 40 ),
                                     bee_head:     context.shaders_in_use["Phong_Model"].material( Color( .863, .078, .235 ), .2, 1, .7, 40 ),
                                     bee_wing:     context.shaders_in_use["Phong_Model"].material( Color( 0.86, 0.86, 0.86 ), .2, 1, .7, 40 ),
                                     bee_torso:    context.shaders_in_use["Phong_Model"].material( Color( .18 , .30 , .30 ), .2, 1, .7, 40 ),
                                     bee_abdomen:  context.shaders_in_use["Phong_Model"].material( Color( .855, .647, .125), .2, 1, .7, 40 ),
                                     bee_leg1:     context.shaders_in_use["Phong_Model"].material( Color( .2  , .2  , .2 ), .2, 1, .7, 40 ),
                                     bee_leg2:     context.shaders_in_use["Phong_Model"].material( Color( .7  , .7  , .7 ), .2, 1, .7, 40 ),
-                                    bee_hat:      context.shaders_in_use["Phong_Model"].material( Color( .020, 0   , 0.5), .5, .5, .5, 40, context.textures_in_use["stars.png"]) });
+                                    bee_hat:      context.shaders_in_use["Phong_Model"].material( Color( .020, 0   , 0.5), .5, .5, .5, 40, context.textures_in_use["stars.png"]),
+                                    shirt:        context.shaders_in_use["Phong_Model"].material( Color(  0.5, 0.5, 0.5), .5, .5, .5, 40, context.textures_in_use["shirt.jpeg"]),
+                                    crate_texture: context.shaders_in_use["Phong_Model"].material( Color( 0.5, 0.5, 0.5), .5, .5, .5, 40, context.textures_in_use["crate_texture.jpg"])
+        });
       },
     'display'( graphics_state )
       { 
         // *** Lights: *** Values of vector or point lights over time.  Two different lights *per shape* supported; more requires changing a number in the vertex shader.
         graphics_state.lights = [ new Light( vec4( -10,  -10,  25, 1 ), Color( 1, 1, 1, 1 ), 100000 ),
-                                  new Light( vec4(  10,   10, -25, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
+                                  new Light( vec4(  10,   10, -25, 1 ), Color( 1, 1, 0.3, 0.4), 100000 ),
+                                  new Light( vec4(  10,   0, -15, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ),
+                                  new Light( vec4(  10,   -10, -15, 1 ), Color( 1, 0.3, 0.3, 1), 100000 ) ];
 
-        var model_transform = identity();
-        model_transform = mult(model_transform, scale(2, 2, 2));
-        model_transform = mult(model_transform, rotation(90, [0,0,1]));
-        this.shapes.lego_body.draw(graphics_state, model_transform, this.yellow_clay);
-      }
+        this.shapes.ground.draw(graphics_state, mult(translation(0,0,-15), scale(60, 2000, 1000)), this.ground);
+        var model_transform = scale(0.5, 0.5, 0.5);
+
+        var t = graphics_state.animation_time/100;
+        var time1 = 18 * Math.PI;
+        var time2 = time1 + 8 * Math.PI;
+        var time3 = time2 + 5.5 * Math.PI;
+        var time4 = time3 + 5 * Math.PI;
+        var time5 = time4 + 15 * Math.PI;
+        var time6 = time5 + 0.7 * Math.PI;
+        var time7 = time6 + 5 * Math.PI;
+        var time8 = time7 + 5 * Math.PI;
+
+        if (t < time1) { // running
+            graphics_state.camera_transform = lookAt(vec3(20, -1000, 10), vec3(0, -t*50/2, 0), vec3(0,0,1));
+            model_transform = mult(model_transform, translation(0, -t*50, 0));
+            this.draw_lego_man(model_transform, graphics_state,
+                -50*Math.cos(t), Math.cos(t), 50*Math.cos(t), // left arm, hand, leg
+                50*Math.cos(t), 10*Math.cos(t*1.7), -50*Math.cos(t)  // right arm, hand, leg
+            );
+
+            var crate_trans = scale(15, 15, 15);
+            crate_trans = mult(crate_trans, translation(2, -50, -0.2));
+            crate_trans = mult(crate_trans, rotation(160, [0, 0, 1]));
+            this.shapes.crate.draw(graphics_state, crate_trans, this.crate_texture);
+
+        } else if (time1 <= t && t < time2) { // run past the camera shot
+            t -= time1;
+
+            graphics_state.camera_transform = lookAt(vec3(300, -10, 10), vec3(0, 0, 0), vec3(0,0,1));
+            model_transform = scale(0.5, 0.5, 0.5);
+            model_transform = mult(model_transform, translation(0, 400 + -t*60, 0));
+            this.draw_lego_man(model_transform, graphics_state,
+                -50*Math.cos(t), 0, 50*Math.cos(t), // left arm, hand, leg
+                50*Math.cos(t), 0, -50*Math.cos(t)  // right arm, hand, leg
+            );
+
+        } else if (time2 <= t && t < time3) { // tracking shot
+            graphics_state.camera_transform = lookAt(vec3(100, -10, 10), vec3(0, 0, 0), vec3(0,0,1));
+
+            this.draw_lego_man(model_transform, graphics_state,
+                -50*Math.cos(t), 0, 50*Math.cos(t), // left arm, hand, leg
+                80*Math.cos(t)+80, 0, -50*Math.cos(t)  // right arm, hand, leg
+            );
+
+        } else if (time3 <= t && t < time4) { // lign up both legs
+           graphics_state.camera_transform = lookAt(vec3(100, -10, 10), vec3(0, 0, 0), vec3(0,0,1));
+           model_transform = mult(model_transform, translation(0, (t-time3)*-5, (t - time3)*15));
+           model_transform = mult(model_transform, rotation((t-time3)*25, [1,0,0]));
+           this.draw_lego_man(model_transform, graphics_state,
+               0, 0, -20 + 20*Math.cos(t), // left arm, hand, leg
+               80, (t-time3)*30, -20 + 20*Math.cos(t*1.1) // right arm, hand, leg
+           );
+
+        } else if (time4 <= t && t < time5) {
+           graphics_state.camera_transform = lookAt(vec3(0, -100, 90), vec3(0, 0, 90), vec3(0,0,1));
+           model_transform = translation(0,0,90);
+           model_transform = mult(model_transform, rotation((t-time3)*25, [1,0,0]));
+           this.draw_lego_man(model_transform, graphics_state,
+               10*Math.cos(t*0.8) + 20, 0, -20 + 40*Math.cos(t), // left arm, hand, leg
+               140 + 10*Math.cos(t*0.5), (t-time4)*30, -20*Math.cos(t) + 39*Math.cos((t+1)*1.05) // right arm, hand, leg
+           );
+
+        } else if (time5 <= t && t < time6) {
+           graphics_state.camera_transform = lookAt(vec3(300, 60, 50), vec3(0, -60, 50), vec3(0,0,1));
+           model_transform = translation(30, 60 - (t-time5)*120, 160 - (t-time5)*60);
+           this.draw_lego_man(model_transform, graphics_state,
+               40, 0, 60, // left arm, hand, leg
+               -140+(t-time5)*20, 90 + (t-time5)*10, -70  // right arm, hand, leg
+           );
+
+           var crate_transform = identity();
+           crate_transform = mult(crate_transform, scale(20, 20, 20));
+           crate_transform = mult(crate_transform, translation(0, -0.5, 0));
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, rotation(-30, [0, 0, 1])), this.crate_texture);
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, translation(0, -6, 0)), this.crate_texture);
+
+           var block_transform = scale(30, 30, 60);
+           block_transform = mult(block_transform, translation(0, -2, 0.26));
+           block_transform = mult(block_transform, rotation(90, [1, 0, 0]));
+           block_transform = mult(block_transform, rotation(180, [0, 1, 0]));
+           this.shapes.block1.draw(graphics_state, block_transform, this.tree_bark);
+           this.shapes.block2.draw(graphics_state, mult(block_transform, translation(0,0.85,0)), this.tree_bark);
+
+        } else if (time6 <= t && t < time7) {
+           if (!played) {
+               lightsaber_noise.play();
+               played = true;
+           }
+           model_transform = translation(30, -240, 10);
+           this.draw_lego_man(model_transform, graphics_state,
+                 40,  0,  60, // left arm, hand, leg
+               -140, 90, -70  // right arm, hand, leg
+           );
+
+           var crate_transform = identity();
+           crate_transform = mult(crate_transform, scale(20, 20, 20));
+           crate_transform = mult(crate_transform, translation(0, -0.5, 0));
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, rotation(-30, [0, 0, 1])), this.crate_texture);
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, translation(0, -6, 0)), this.crate_texture);
+
+           var block_transform = scale(30, 30, 60);
+           block_transform = mult(block_transform, translation(0, -2, 0.26));
+           block_transform = mult(block_transform, rotation(90, [1, 0, 0]));
+           block_transform = mult(block_transform, rotation(180, [0, 1, 0]));
+           this.shapes.block1.draw(graphics_state, block_transform, this.tree_bark);
+           this.shapes.block2.draw(graphics_state, mult(block_transform, translation(0,0.85,0)), this.tree_bark);
+
+
+        } else if (time7 <= t && t < time8) {
+           var block_transform = scale(30, 30, 60);
+           block_transform = mult(block_transform, translation(0, -2, 0.26));
+           block_transform = mult(block_transform, rotation(90, [1, 0, 0]));
+           block_transform = mult(block_transform, rotation(180, [0, 1, 0]));
+           this.shapes.block1.draw(graphics_state, mult(block_transform, translation(0,0,0)), this.tree_bark);
+           this.shapes.block2.draw(graphics_state, mult(block_transform, translation(-(t-time7),0.85-(t-time7)*0.3,-(t-time7))), this.tree_bark);
+
+           var crate_transform = identity();
+           crate_transform = mult(crate_transform, scale(20, 20, 20));
+           crate_transform = mult(crate_transform, translation(0, -0.5, 0));
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, rotation(-30, [0, 0, 1])), this.crate_texture);
+           this.shapes.crate.draw(graphics_state, mult(crate_transform, translation(0, -6, 0)), this.crate_texture);
+
+           model_transform = translation(30, -240, 10);
+           this.draw_lego_man(model_transform, graphics_state,
+                 40,  0,  60, // left arm, hand, leg
+               -140, 90, -70  // right arm, hand, leg
+           );
+        }
+      },
+    'draw_lego_man' (model_transform, graphics_state, larm_angle, lhand_angle, lleg_angle, rarm_angle, rhand_angle, rleg_angle)
+    {
+      // draw torso
+      model_transform = mult(model_transform, scale(10, 10, 10));
+      model_transform = mult(model_transform, rotation(-90, [0, 0, 1]));
+
+      //model_transform = mult(model_transform, rotation(graphics_state.animation_time/10, [0, 0, 1])); // rotate the model
+
+      this.shapes.lego_body.draw(graphics_state, model_transform, this.shirt);
+
+      // rotate the pieces because I modeled them weirdly
+      model_transform = mult(model_transform, rotation(90, [1, 0, 0]));
+      model_transform = mult(model_transform, rotation(90, [0, 1, 0]));
+
+      var checkpoint = model_transform;
+
+      // draw the head
+      model_transform = mult(model_transform, translation(0, 1.7, 0));
+      model_transform = mult(model_transform, scale(0.6, 0.6, 0.6,));
+      this.shapes.lego_head.draw(graphics_state, model_transform, this.yellow_clay);
+
+      // draw that lower part of the lego man
+      model_transform = mult(model_transform, translation(0, -5, 0));
+      model_transform = mult(model_transform, scale(1.3, 1.3, 1.3));
+      this.shapes.lego_lower.draw(graphics_state, model_transform, this.brown_clay);
+
+      // break a leg
+      var draw_leg = function(model_transform, angle) {
+        model_transform = mult(model_transform, translation(0, 1, 0));
+        model_transform = mult(model_transform, rotation(-angle, [1, 0, 0]));
+        model_transform = mult(model_transform, translation(0, -0.9, 0));
+        this.shapes.lego_leg.draw(graphics_state, model_transform, this.bee_leg1);
+      }.bind(this);
+
+      // draw legs
+      draw_leg(mult(model_transform, translation(0.85, -1.4, 0)), lleg_angle);
+      draw_leg(mult(model_transform, translation(-0.85, -1.4, 0)), rleg_angle);
+
+      // draw the arms
+      var draw_arm = function(model_transform, arm_angle, wrist_angle, lightsaber) {
+          model_transform = mult(model_transform, translation(0, 1.1, 0));
+          model_transform = mult(model_transform, rotation(-arm_angle, [1, 0, 0]));
+          model_transform = mult(model_transform, translation(0, -1.1, 0));
+          this.shapes.lego_arm.draw(graphics_state, model_transform, this.bee_leg1);
+
+          model_transform = mult(model_transform, translation(-0.4, -1.3, 0.7));
+          model_transform = mult(model_transform, scale(0.5, 0.5, 0.5));
+          model_transform = mult(model_transform, rotation(wrist_angle, [-0.1, -0.3, 0.3]));
+          this.shapes.lego_hand.draw(graphics_state, model_transform, this.bee_leg1);
+
+          if (lightsaber) {
+            model_transform = mult(model_transform, translation(0, 0.2, 0.8));
+            model_transform = mult(model_transform, rotation(-35, [1, 0, 0]));
+            model_transform = mult(model_transform, scale(0.4, 0.4, 10));
+            this.shapes.sword.draw(graphics_state, mult(model_transform, translation(0, 0, 0.4)), this.bee_hat);
+          }
+      }.bind(this);
+
+      model_transform = checkpoint;
+      model_transform = mult(model_transform, scale(0.7, 0.7, 0.7));
+      draw_arm(mult(model_transform, translation(-1.4, -0.45, 0.15)), rarm_angle, rhand_angle, true);
+
+      model_transform = mult(model_transform, scale(-1, 1, 1));
+      draw_arm(mult(model_transform, translation(-1.4, -0.45, 0.15)), larm_angle, lhand_angle, false);
+    }
   }, Scene_Component );
 
   

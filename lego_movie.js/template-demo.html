@@ -11,13 +11,13 @@ index.html - The web page document containing the canvas (drawing surface), that
 <script type="text/javascript"> "use strict" 
   window.onload = function init()           // ********************* OUR WHOLE PROGRAM'S ENTRY POINT ********************* 
     {                                                                                         // Firstly, browsers support something like up to 16 instances of WebGL 
-      window.contexts = { main_canvas: new Canvas_Manager( "gl-canvas", Color( .49, .619, .752, 1 ) ) }; // per page.  Construct a Canvas_Manager, which instances a WebGL context
+      window.contexts = { main_canvas: new Canvas_Manager( "gl-canvas", Color( .1, .119, .122, 1 ) ) }; // per page.  Construct a Canvas_Manager, which instances a WebGL context
                                                                                                  // for our main canvas.  Set your background color here too.     
       var shaders = [ "Phong_Model", "Funny_Shader", "Fake_Bump_Map" ];                          // Now put all our shader programs in the GPU.
       for( let s of shaders )        contexts["main_canvas"].shaders_in_use [ s ] = ( new window[s]( contexts["main_canvas"].gl ) );   
       
                                   // IMPORTANT: -- You have to include all your new image files in the following array:
-      var texture_files_to_load = [ "text.png", "stars.png", "earth.gif" ];     // Put all our texture images in the GPU.
+      var texture_files_to_load = [ "text.png", "stars.png", "earth.gif", "shirt.jpeg", "crate_texture.jpg" ];     // Put all our texture images in the GPU.
       for( let f of texture_files_to_load ) contexts["main_canvas"].textures_in_use[ f ] = ( new Texture( contexts["main_canvas"].gl, f, true ) );      
                                                                                       // We instantiate some of our custom "Scene_Component" subclasses and register
       var scene_components = [ "Debug_Screen", "Example_Camera", "Flag_Toggler" ];    // objects to their master "Canvas_Manager" object -- which WebGL calls
