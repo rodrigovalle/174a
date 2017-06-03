@@ -6,7 +6,10 @@ mess anything up by changing it.
 
 The flat shaded edges/custom shape/custom texture is present as the lego
 figure's torso. The texture is that of a shirt, it's subtle but it's there. You
-can pause the animation when the figure runs by at the beginning to view it.
+can pause the animation when the figure runs by at the beginning to view it. The
+edges are flat shaded, although it might be hard to tell under that particular
+lighting. Rest assured, I checked to make sure, please see some of the other
+shots with better lighting if you need further confirmation.
 
 The hierarchical aspect comes from the figure's arm and wrist movement (2
 pivots).
