@@ -8,6 +8,7 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
       { this.define_data_members( { position, size, color, k_a, k_d, k_s, n, k_r, k_refract, refract_index } );
  
         this.model_transform = mult(translation(position), scale(size));
+        this.inverse_model_transform = inverse(this.model_transform);
       },
     'intersect'( ray, existing_intersection, minimum_dist )
       {
@@ -19,23 +20,37 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
         // return a dummy color if the intersection tests positive.  This will show the spheres' outlines, giving early proof that you did intersect() correctly.
 
         // ray being a unit vector should make things easier
-        console.log(ray.origin);
-        console.log(this.position);
-        var v = subtract(ray.origin, this.position);
-        var v_dot_ray = dot(v, ray.dir);
 
-        console.log(v_dot_ray);
-        throw 'screw this, im out';
+        // ray equation: x = s + td
+        // t: parameter
+        // d: direction of ray
+        // s: source (origin) of the ray
+        // x: points on the ray
 
-        var disc = v_dot_ray**2 - (dot(v, v) - this.size**2);
+        // sphere equation: ||x - c||^2 = r^2
+        // c: center of sphere (0,0,0)
+        // r: radius of sphere (1)
+        // x: points on surface of sphere
+  
+        var s = mult_vec(this.inverse_model_transform, ray.origin);
+        var d = normalize(mult_vec(this.inverse_model_transform, ray.dir));
+
+        s.pop();
+        d.pop();
+
+        var s_dot_d = dot(s, d);
+        var disc = s_dot_d**2 - dot(s, s) + 1;
 
         if (disc > 0) { // two solutions
-          var intersect_1 = -v_dot_ray - Math.sqrt(disc);
-          // var intersect_2 = -v_dot_ray + Math.sqrt(disc);
+          var t0 = -s_dot_d - Math.sqrt(disc);
+          var t1 = -s_dot_d + Math.sqrt(disc);
 
-          if (minimum_dist <= intersect_1 && intersect_1 < existing_intersection.distance) {
-            var n = normalize(subtract(intersect1, position));
-            return { distance: intersect_1, ball: this, normal: n };
+          var t = Math.min(t0, t1); // XXX: do we need this or is it always t0?
+
+          if (minimum_dist <= t && t < existing_intersection.distance) {
+            var n = add(s, scale_vec(t, d)).push(1);
+            n = mult_vec(this.model_transform, n);
+            return { distance: t, ball: this, normal: normalize(n) };
           }
         }
 
@@ -107,14 +122,18 @@ Declare_Any_Class( "Ray_Tracer",
           return Color( 0, 0, 0, 1 );  // Each recursion, check if there's any remaining potential for the pixel to be brightened.
         }
 
-        var closest_intersect = { distance: Number.POSITIVE_INFINITY, ball: null, normal: null };   // An empty intersection object
+        var closest_intersect = {
+          distance: Number.POSITIVE_INFINITY,
+          ball: null,
+          normal: null
+        };   // An empty intersection object
         
         for (i = 0; i < this.balls.length; i++) {
-          var x = this.balls[i].intersect(ray, closest_intersect, this.near);
+          closest_intersect = this.balls[i].intersect(ray, closest_intersect, this.near);
         }
 
         if (closest_intersect.ball) {
-          return Color(1, 1, 0, 1);
+          return Color(1, 0, 0, 1);
         } else {
           return this.color_missed_ray(ray); 
         }
