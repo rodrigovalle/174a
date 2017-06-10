@@ -46,6 +46,12 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
           var t1 = -s_dot_d + Math.sqrt(disc);
 
           var t = Math.min(t0, t1);
+          var inside_sphere = false;
+
+          if (t0 < minimum_dist && minimum_dist < t1) {
+            inside_sphere = true;
+            t = Math.max(t0, t1);
+          }
 
           if (minimum_dist <= t && t < existing_intersection.distance) {
             var hit = add(s, scale_vec(t, d));
@@ -55,6 +61,10 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
 
             hit = mult_vec(this.model_transform, hit);
             n = mult_vec(transpose(this.inverse_model_transform), n);
+
+            if (inside_sphere) {
+              n = negate(n);
+            }
 
             hit.pop();
             n.pop();
