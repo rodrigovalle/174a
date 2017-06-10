@@ -45,11 +45,11 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
           var t0 = -s_dot_d - Math.sqrt(disc);
           var t1 = -s_dot_d + Math.sqrt(disc);
 
-          var t = Math.min(t0, t1); // XXX: do we need this or is it always t0?
+          var t = Math.min(t0, t1);
 
           if (minimum_dist <= t && t < existing_intersection.distance) {
-            var n = add(s, scale_vec(t, d)).push(1);
-            n = mult_vec(this.model_transform, n);
+            var n = add(s, scale_vec(t, d)); n.push(0); // n is a vector, w = 0
+            n = mult_vec(this.inverse_model_transform, n).slice(0,3);
             return { distance: t, ball: this, normal: normalize(n) };
           }
         }
@@ -133,12 +133,41 @@ Declare_Any_Class( "Ray_Tracer",
         }
 
         if (closest_intersect.ball) {
-          return Color(1, 0, 0, 1);
-        } else {
-          return this.color_missed_ray(ray); 
+          //return Color(1, 0, 0, 1);
+          var ball = closest_intersect.ball;
+          var N = closest_intersect.normal;
+          var V = negate(ray.origin);
+          var pixel_color = scale_vec(ball.k_a, ball.color); // ambient
+
+          for (i = 0; i < this.lights.length; i++) {
+            var L = normalize(subtract(this.lights[i].position.slice(0,3), ball.position));
+            var L_dot_N = dot(L, N);
+            var R = normalize(subtract(scale_vec(2 * L_dot_N, N), L));
+
+            var diffuse_light_contribution = mult_3_coeffs(
+              this.lights[i].color.slice(0,3),
+              scale_vec(ball.k_d * Math.max(0, L_dot_N), ball.color)
+            );
+
+            pixel_color = add(pixel_color, diffuse_light_contribution);
+          }
+          return pixel_color;
+          //return N;
+
+        /* var surface_color = k_a * sphere color +
+           *   for each point light source (p) {
+           *     this.lights[p].color * (k_d * (N dot L, positive only) * (the sphere’s color) +
+           *     k_s * ( (N dot H)^n, positive only) *white)
+           *   }
+           *
+           * and then:
+           *
+           * vec3 pixel_color = surface_color + (white - surface_color) *
+           *                    (k_r * trace(...).slice(0,3) + k_refract * trace(...).slice(0,3))
+           */
         }
-          
-        return Color(0, 0, 0, 1);
+
+        return this.color_missed_ray(ray);
       },
     'parse_line'( tokens )            // Load the lines from the textbox into variables
       { for( let i = 1; i < tokens.length; i++ ) tokens[i] = Number.parseFloat( tokens[i] );
