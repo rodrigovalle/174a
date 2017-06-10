@@ -97,13 +97,13 @@ Declare_Any_Class( "Ray_Tracer",
     'get_dir'( ix, iy )   
       {
         // Map an (x,y) pixel to a corresponding xyz vector that reaches the near plane.  If correct, everything under the "background effects" menu will now work. 
-        var a = (ix / this.width)
-        var x = a * this.left + (1-a) * this.right
+        var a = ix / this.width;
+        var x = a * this.right + (1-a) * this.left;
 
-        var b = (iy / this.height)
-        var y = b * this.bottom + (1-b) * this.top;
+        var b = iy / this.height;
+        var y = b * this.top + (1-b) * this.bottom;
 
-        return vec4( x, y, -this.near, 0 );
+        return vec4(x, y, -this.near, 0);
       },
     'color_missed_ray'( ray ) { return mult_3_coeffs( this.ambient, this.background_functions[ this.curr_background_function ] ( ray ) ).concat(1); },
     'trace'( ray, color_remaining, is_primary, light_to_check = null )
