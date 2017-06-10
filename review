@@ -1,0 +1,53 @@
+Here is a lesson that's necessary to solve one part of the exam!
+
+These are opposite qeustions:
+ 1. How do I convert basis A to basis B?
+ 2. 
+
+Final
+ - What were the formulas used during project 3?
+   know phong formula, reflection formula: 2*(V dot N) - V
+
+ - What are the dependent variables when trying to find where a line's vanishing
+   point is?
+   Line equation expressed s + tc
+   will vanishing point depend on both s & c? or just one?
+   will s change vanishing point? nope (all lines converge to vanishing point if
+   they're parallel to each other)
+
+ - What sequence of matrices reflects point P around an arbitrary plane, given
+   the plane's equation?
+   plane given in implicit form, linear combination of x y & z
+   be able to find normal from plane equation
+   set up the situation so that the plane is really easy (rotate twice), then scale
+   by 1, 1, -1 to flip along the z axis
+   know 3d rotation matrix?
+
+ - What sequence of matrices change a point's basis from any pair of arrows
+   A to a pair B? (Be careful: try a simple case first where A is just a single
+   translation away from being B)
+   inverse model transform matrix
+
+   p1 = p in original (identity) basis
+   p = A^-1 * p1
+
+   point is expressed in A
+
+   point in B = ?
+
+   B^-1 * A * p
+
+   ==> B^-1 * A * (A^-1 * p1)
+   ==> B^-1 * p1
+
+   also: (ABC)^-1 = C^-1 * B^-1 * A^-1
+
+   A = MB
+   M turns B into A
+   M expresses a point in A in B instead
+
+ - What's one sequence of matrices that can be used to connect two squares by
+   a corner?
+
+ - Implicit, Explicit, and Parametric -- How do you convert between any pair of
+   these equation types?
