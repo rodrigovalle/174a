@@ -48,9 +48,17 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
           var t = Math.min(t0, t1);
 
           if (minimum_dist <= t && t < existing_intersection.distance) {
-            var n = add(s, scale_vec(t, d)); n.push(0); // n is a vector, w = 0
-            n = mult_vec(this.inverse_model_transform, n).slice(0,3);
-            return { distance: t, ball: this, normal: normalize(n) };
+            var hit = add(s, scale_vec(t, d));
+            var n = hit.slice();
+            hit.push(1); // hit is a point
+            n.push(0);   // n is a vector
+
+            hit = mult_vec(this.model_transform, hit);
+            n = mult_vec(transpose(this.inverse_model_transform), n);
+
+            hit.pop();
+            n.pop();
+            return { distance: t, point: hit, ball: this, normal: normalize(n) };
           }
         }
 
@@ -124,6 +132,7 @@ Declare_Any_Class( "Ray_Tracer",
 
         var closest_intersect = {
           distance: Number.POSITIVE_INFINITY,
+          point: null,
           ball: null,
           normal: null
         };   // An empty intersection object
@@ -135,33 +144,70 @@ Declare_Any_Class( "Ray_Tracer",
         if (closest_intersect.ball) {
           //return Color(1, 0, 0, 1);
           var ball = closest_intersect.ball;
+          var hit = closest_intersect.point;
           var N = closest_intersect.normal;
-          var V = negate(ray.origin);
-          var pixel_color = scale_vec(ball.k_a, ball.color); // ambient
+          var V = normalize(negate(ray.dir)).slice(0,3);
+          var surface_color = scale_vec(ball.k_a, ball.color); // ambient contribution
 
           for (i = 0; i < this.lights.length; i++) {
-            var L = normalize(subtract(this.lights[i].position.slice(0,3), ball.position));
+            var L = normalize(subtract(this.lights[i].position.slice(0,3), hit));
             var L_dot_N = dot(L, N);
             var R = normalize(subtract(scale_vec(2 * L_dot_N, N), L));
+            var H = normalize(add(L, V));
 
-            var diffuse_light_contribution = mult_3_coeffs(
-              this.lights[i].color.slice(0,3),
-              scale_vec(ball.k_d * Math.max(0, L_dot_N), ball.color)
+            var diffuse_light_contribution = scale_vec(
+              ball.k_d * Math.max(0, L_dot_N),
+              ball.color
             );
 
-            pixel_color = add(pixel_color, diffuse_light_contribution);
+            var specular_light_contribution = scale_vec(
+              ball.k_s * Math.pow(Math.max(0, dot(R, V)), ball.n),
+              vec3(1,1,1)
+            );
+
+            surface_color = add(
+              surface_color,
+              mult(
+                this.lights[i].color.slice(0,3),
+                add(specular_light_contribution, diffuse_light_contribution)
+              )
+            );
           }
+
+          // restrict surface_color values to at most 1
+          for (i = 0; i < surface_color.length; i++) {
+            surface_color[i] = Math.min(1, surface_color[i]);
+          }
+
+          var color_next = mult_3_coeffs(
+            color_remaining,
+            subtract(vec3(1, 1, 1), surface_color)
+          );
+
+          // calculate reflection
+          var reflect_ray = {
+            origin: hit.concat(1),
+            dir: normalize(subtract(scale_vec(2 * dot(V, N), N), V)).concat(0)
+          };
+
+          // reflect
+          var pixel_color = add(surface_color, 
+            mult_3_coeffs(
+              subtract(vec3(1, 1, 1), surface_color),
+              scale_vec(ball.k_r,
+                this.trace(
+                  reflect_ray,
+                  scale_vec(ball.k_r, color_next),
+                  false
+                ).slice(0,3)
+              )
+            )
+          );
+
           return pixel_color;
           //return N;
 
-        /* var surface_color = k_a * sphere color +
-           *   for each point light source (p) {
-           *     this.lights[p].color * (k_d * (N dot L, positive only) * (the sphere’s color) +
-           *     k_s * ( (N dot H)^n, positive only) *white)
-           *   }
-           *
-           * and then:
-           *
+          /* 
            * vec3 pixel_color = surface_color + (white - surface_color) *
            *                    (k_r * trace(...).slice(0,3) + k_refract * trace(...).slice(0,3))
            */
