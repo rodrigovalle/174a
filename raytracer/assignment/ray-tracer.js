@@ -64,7 +64,7 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
           hit = mult_vec(this.model_transform, hit);
           let t_world = length(subtract(hit, ray.origin));
 
-          if (minimum_dist < t_world && t_world < existing_intersection.distance) {
+          if (minimum_dist < t && t < existing_intersection.distance) {
             n = mult_vec(this.normal_to_world, n);
 
             if (inside_sphere) {
@@ -73,7 +73,7 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
 
             hit.pop();
             n.pop();
-            return { distance: t_world, distance_obj: t, point: hit, ball: this, normal: normalize(n) };
+            return { distance: t, point: hit, ball: this, normal: normalize(n) };
           }
         }
 
@@ -152,7 +152,6 @@ Declare_Any_Class( "Ray_Tracer",
 
         let closest_intersect = {
           distance: Number.POSITIVE_INFINITY,
-          distance_obj: Number.POSITIVE_INFINITY,
           point: null,
           ball: null,
           normal: null
@@ -163,7 +162,7 @@ Declare_Any_Class( "Ray_Tracer",
 
           // if shadow ray, check for intersect between ray and light
           if (light_to_check && closest_intersect.ball) {
-            if (0 < closest_intersect.distance_obj) {
+            if (0 < closest_intersect.distance) {
               return true;
             }
           }
@@ -218,12 +217,12 @@ Declare_Any_Class( "Ray_Tracer",
           }
 
           // restrict surface_color values to at most 1
-          for (let i = 0; i < surface_color.length; i++) {
-            surface_color[i] = Math.min(1, surface_color[i]);
-          }
+          //for (let i = 0; i < surface_color.length; i++) {
+          //  surface_color[i] = Math.min(1, surface_color[i]);
+          //}
 
           // reflect
-          /*let k_r = closest_intersect.ball.k_r;
+          let k_r = closest_intersect.ball.k_r;
           let color_next_r = scale_vec(
             k_r,
             mult_3_coeffs(
@@ -246,10 +245,43 @@ Declare_Any_Class( "Ray_Tracer",
                 this.trace(reflect_ray, color_next_r, false).slice(0,3)
               )
             )
+          );
+
+          // refract
+          /*
+          let k_refract = closest_intersect.ball.k_refract;
+          let color_next_refract = scale_vec(
+            k_refract,
+            mult_3_coeffs(
+              color_remaining,
+              subtract(vec3(1,1,1), surface_color)
+            )
+          );
+          */
+
+          /*
+          let l = negate(V);
+          let r = 1/ball.refract_index;
+          let c = -dot(N, l);
+          let refract_ray = {
+            origin: hit.concat(1),
+            dir: add(
+              scale_vec(r, l),
+              scale_vec(r*c - Math.sqrt(1 - r**2 * (1 - c**2)), N)
+            )
+          };
+
+          pixel_color = add(
+            pixel_color,
+            scale_vec(
+              k_refract,
+              this.trace(refract_ray, color_next_refract, false).slice(0,3)
+            )
           );*/
 
-          return surface_color;
-          //return pixel_color;
+          //return surface_color;
+          return pixel_color;
+          //return reflect_ray.dir;
           //return N;
 
           /* 
@@ -258,11 +290,7 @@ Declare_Any_Class( "Ray_Tracer",
            */
         }
 
-        if (is_primary) {
-          return this.color_missed_ray(ray);
-        } else {
-          return Color(0,0,0,1);
-        }
+        return this.color_missed_ray(ray);
       },
     'parse_line'( tokens )            // Load the lines from the textbox into variables
       { for( let i = 1; i < tokens.length; i++ ) tokens[i] = Number.parseFloat( tokens[i] );
