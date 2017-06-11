@@ -8,7 +8,8 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
       { this.define_data_members( { position, size, color, k_a, k_d, k_s, n, k_r, k_refract, refract_index } );
  
         this.model_transform = mult(translation(position), scale(size));
-        this.inverse_model_transform = inverse(this.model_transform);
+        this.world_to_object = inverse(this.model_transform);
+        this.normal_to_world = transpose(this.world_to_object);
       },
     'intersect'( ray, existing_intersection, minimum_dist )
       {
@@ -32,35 +33,39 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
         // r: radius of sphere (1)
         // x: points on surface of sphere
   
-        var s = mult_vec(this.inverse_model_transform, ray.origin);
-        var d = normalize(mult_vec(this.inverse_model_transform, ray.dir));
+        let s = mult_vec(this.world_to_object, ray.origin);
+        let d = normalize(mult_vec(this.world_to_object, ray.dir));
 
         s.pop();
         d.pop();
 
-        var s_dot_d = dot(s, d);
-        var disc = s_dot_d**2 - dot(s, s) + 1;
+        let s_dot_d = dot(s, d);
+        let disc = s_dot_d**2 - dot(s, s) + 1;
 
         if (disc > 0) { // two solutions
-          var t0 = -s_dot_d - Math.sqrt(disc);
-          var t1 = -s_dot_d + Math.sqrt(disc);
+          let t0 = -s_dot_d - Math.sqrt(disc);
+          let t1 = -s_dot_d + Math.sqrt(disc);
 
-          var t = Math.min(t0, t1);
-          var inside_sphere = false;
+          // object coordinate calculations
+          let t = Math.min(t0, t1);
+          let inside_sphere = false;
 
+          // check if inside a sphere
           if (t0 < minimum_dist && minimum_dist < t1) {
             inside_sphere = true;
             t = Math.max(t0, t1);
           }
 
-          if (minimum_dist <= t && t < existing_intersection.distance) {
-            var hit = add(s, scale_vec(t, d));
-            var n = hit.slice();
-            hit.push(1); // hit is a point
-            n.push(0);   // n is a vector
+          // calculate hit & normal in object coordinates
+          let hit = add(s, scale_vec(t, d)).concat(1); // hit is a point
+          let n = add(s, scale_vec(t, d)).concat(0);   // n is a vector
 
-            hit = mult_vec(this.model_transform, hit);
-            n = mult_vec(transpose(this.inverse_model_transform), n);
+          // transform to world coordinates
+          hit = mult_vec(this.model_transform, hit);
+          let t_world = length(subtract(hit, ray.origin));
+
+          if (minimum_dist < t_world && t_world < existing_intersection.distance) {
+            n = mult_vec(this.normal_to_world, n);
 
             if (inside_sphere) {
               n = negate(n);
@@ -68,7 +73,7 @@ Declare_Any_Class( "Ball", // The following data members of a ball are filled in
 
             hit.pop();
             n.pop();
-            return { distance: t, point: hit, ball: this, normal: normalize(n) };
+            return { distance: t_world, distance_obj: t, point: hit, ball: this, normal: normalize(n) };
           }
         }
 
@@ -115,16 +120,16 @@ Declare_Any_Class( "Ray_Tracer",
     'get_dir'( ix, iy )   
       {
         // Map an (x,y) pixel to a corresponding xyz vector that reaches the near plane.  If correct, everything under the "background effects" menu will now work. 
-        var a = ix / this.width;
-        var x = a * this.right + (1-a) * this.left;
+        let a = ix / this.width;
+        let x = a * this.right + (1-a) * this.left;
 
-        var b = iy / this.height;
-        var y = b * this.top + (1-b) * this.bottom;
+        let b = iy / this.height;
+        let y = b * this.top + (1-b) * this.bottom;
 
         return vec4(x, y, -this.near, 0);
       },
     'color_missed_ray'( ray ) { return mult_3_coeffs( this.ambient, this.background_functions[ this.curr_background_function ] ( ray ) ).concat(1); },
-    'trace'( ray, color_remaining, is_primary, light_to_check = null )
+    'trace'( ray, color_remaining, is_primary, light_to_check=null )
       {
     // TODO:  Given a ray, return the color in that ray's path.  The ray either originates from the camera itself or from a secondary reflection or refraction off of a
     //        ball.  Call Ball.prototype.intersect on each ball to determine the nearest ball struck, if any, and perform vector math (the Phong reflection formula)
@@ -140,37 +145,65 @@ Declare_Any_Class( "Ray_Tracer",
           return Color( 0, 0, 0, 1 );  // Each recursion, check if there's any remaining potential for the pixel to be brightened.
         }
 
-        var closest_intersect = {
+        let min_dist = this.near;
+        if (!is_primary) {
+          min_dist = 0.00001;
+        }
+
+        let closest_intersect = {
           distance: Number.POSITIVE_INFINITY,
+          distance_obj: Number.POSITIVE_INFINITY,
           point: null,
           ball: null,
           normal: null
         };   // An empty intersection object
         
-        for (i = 0; i < this.balls.length; i++) {
-          closest_intersect = this.balls[i].intersect(ray, closest_intersect, this.near);
+        for (let i = 0; i < this.balls.length; i++) {
+          closest_intersect = this.balls[i].intersect(ray, closest_intersect, min_dist);
+
+          // if shadow ray, check for intersect between ray and light
+          if (light_to_check && closest_intersect.ball) {
+            if (0 < closest_intersect.distance_obj) {
+              return true;
+            }
+          }
+        }
+
+        if (light_to_check) {
+          return false;
         }
 
         if (closest_intersect.ball) {
           //return Color(1, 0, 0, 1);
-          var ball = closest_intersect.ball;
-          var hit = closest_intersect.point;
-          var N = closest_intersect.normal;
-          var V = normalize(negate(ray.dir)).slice(0,3);
-          var surface_color = scale_vec(ball.k_a, ball.color); // ambient contribution
+          let ball = closest_intersect.ball;
+          let hit = closest_intersect.point;
+          let N = closest_intersect.normal;
+          let V = normalize(negate(ray.dir)).slice(0,3);
+          let surface_color = scale_vec(ball.k_a, ball.color); // ambient contribution
 
-          for (i = 0; i < this.lights.length; i++) {
-            var L = normalize(subtract(this.lights[i].position.slice(0,3), hit));
-            var L_dot_N = dot(L, N);
-            var R = normalize(subtract(scale_vec(2 * L_dot_N, N), L));
-            var H = normalize(add(L, V));
+          for (let i = 0; i < this.lights.length; i++) {
+            let L = normalize(subtract(this.lights[i].position.slice(0,3), hit));
+            let L_dot_N = dot(L, N);
+            let R = normalize(subtract(scale_vec(2 * L_dot_N, N), L));
+            let H = normalize(add(L, V));
 
-            var diffuse_light_contribution = scale_vec(
+            // shadow
+            let shadow_ray = {
+              origin: hit.concat(1),
+              dir: subtract(this.lights[i].position.slice(0,3), hit).concat(0)
+              //dir: L.concat(0)
+            };
+
+            if (this.trace(shadow_ray, color_remaining, false, light_to_check=this.lights[i])) {
+              continue;
+            }
+
+            let diffuse_light_contribution = scale_vec(
               ball.k_d * Math.max(0, L_dot_N),
               ball.color
             );
 
-            var specular_light_contribution = scale_vec(
+            let specular_light_contribution = scale_vec(
               ball.k_s * Math.pow(Math.max(0, dot(R, V)), ball.n),
               vec3(1,1,1)
             );
@@ -185,36 +218,38 @@ Declare_Any_Class( "Ray_Tracer",
           }
 
           // restrict surface_color values to at most 1
-          for (i = 0; i < surface_color.length; i++) {
+          for (let i = 0; i < surface_color.length; i++) {
             surface_color[i] = Math.min(1, surface_color[i]);
           }
 
-          var color_next = mult_3_coeffs(
-            color_remaining,
-            subtract(vec3(1, 1, 1), surface_color)
-          );
-
-          // calculate reflection
-          var reflect_ray = {
-            origin: hit.concat(1),
-            dir: normalize(subtract(scale_vec(2 * dot(V, N), N), V)).concat(0)
-          };
-
           // reflect
-          var pixel_color = add(surface_color, 
+          /*let k_r = closest_intersect.ball.k_r;
+          let color_next_r = scale_vec(
+            k_r,
             mult_3_coeffs(
-              subtract(vec3(1, 1, 1), surface_color),
-              scale_vec(ball.k_r,
-                this.trace(
-                  reflect_ray,
-                  scale_vec(ball.k_r, color_next),
-                  false
-                ).slice(0,3)
-              )
+              color_remaining,
+              subtract(vec3(1,1,1), surface_color)
             )
           );
 
-          return pixel_color;
+          let reflect_ray = {
+            origin: hit.concat(1),
+            dir: subtract(scale_vec(2 * dot(V, N), N), V).concat(0)
+          };
+
+          let pixel_color = add(
+            surface_color,
+            mult_3_coeffs(
+              subtract(vec3(1,1,1), surface_color),
+              scale_vec(
+                k_r,
+                this.trace(reflect_ray, color_next_r, false).slice(0,3)
+              )
+            )
+          );*/
+
+          return surface_color;
+          //return pixel_color;
           //return N;
 
           /* 
@@ -223,7 +258,11 @@ Declare_Any_Class( "Ray_Tracer",
            */
         }
 
-        return this.color_missed_ray(ray);
+        if (is_primary) {
+          return this.color_missed_ray(ray);
+        } else {
+          return Color(0,0,0,1);
+        }
       },
     'parse_line'( tokens )            // Load the lines from the textbox into variables
       { for( let i = 1; i < tokens.length; i++ ) tokens[i] = Number.parseFloat( tokens[i] );
